@@ -8,5 +8,8 @@ audio/fft/bscdir
 
 audio/work
 
+**/*.log
+**/*.pcm
+
 
 !**/.gitkeep
