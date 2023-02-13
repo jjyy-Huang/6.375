@@ -87,6 +87,14 @@ void pitchadjust(complex double* in, complex double* out)
             out[bin] = cmplxmp(mag, outphases[bin]);
         }
     }
+    printf("IN:\n");
+    for (i = 0; i < N; i++) {
+			printf("    ti[%d] = cmplxmp(%f, tophase(%f));\n", i, cabs(in[i]), carg(in[i]));
+    }
+    printf("OUT:\n");
+    for (i = 0; i < N; i++) {
+			printf("    to[%d] = cmplxmp(%f, tophase(%f));\n", i, cabs(out[i]), carg(out[i]));
+    }
 }
 
 int main(int argc, char* argv[])
@@ -130,7 +138,7 @@ int main(int argc, char* argv[])
         // Shift input samples left by S and copy in the next S sample values.
         // (Oversampling)
         memmove(window, window + S, sizeof(short) * (N-S));
-        memcpy(window + (N-S), samples, sizeof(short)*S); 
+        memcpy(window + (N-S), samples, sizeof(short)*S);
 
         // Convert audio samples to complex numbers
         for (i = 0; i < N; i++) {
