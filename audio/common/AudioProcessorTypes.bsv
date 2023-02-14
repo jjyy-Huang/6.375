@@ -5,6 +5,7 @@ import Reg6375::*;
 
 export AudioProcessorTypes::*;
 export Reg6375::*;
+import GetPut::*;
 
 typedef Int#(16) Sample;
 
@@ -12,6 +13,12 @@ interface AudioProcessor;
     method Action putSampleInput(Sample in);
     method ActionValue#(Sample) getSampleOutput();
 endinterface
+
+interface SettableAudioProcessor#(numeric type isize, numeric type fsize);
+    interface AudioProcessor audioProcessor;
+    interface Put#(FixedPoint#(isize, fsize)) setFactor;
+endinterface
+
 
 
 typedef Complex#(FixedPoint#(16, 16)) ComplexSample;
@@ -29,4 +36,6 @@ endfunction
 
 typedef 8 FFT_POINTS;
 typedef TLog#(FFT_POINTS) FFT_LOG_POINTS;
+
+typedef FixedPoint#(16, 16) ComplexData;
 

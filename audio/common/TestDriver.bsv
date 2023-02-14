@@ -4,78 +4,83 @@ import Counter::*;
 import AudioPipeline::*;
 import AudioProcessorTypes::*;
 
+import GetPut::*;
+
 (* synthesize *)
 module mkTestDriver (Empty);
 
-    AudioProcessor pipeline <- mkAudioPipeline();
+	SettableAudioProcessor#(16, 16) s_pipeline <- mkAudioPipeline();
+	AudioProcessor pipeline = s_pipeline.audioProcessor;
 
-    Reg#(File) m_in <- mkRegU();
-    Reg#(File) m_out <- mkRegU();
+	Reg#(File) m_in <- mkRegU();
+	Reg#(File) m_out <- mkRegU();
 
-    Reg#(Bool) m_inited <- mkReg(False);
-    Reg#(Bool) m_doneread <- mkReg(False);
+	Reg#(Bool) m_inited <- mkReg(False);
+	Reg#(Bool) m_doneread <- mkReg(False);
 
-    Counter#(32) m_outstanding <- mkCounter(0);
+	Counter#(32) m_outstanding <- mkCounter(0);
 
-    rule init(!m_inited);
-        m_inited <= True;
+	rule init(!m_inited);
+		m_inited <= True;
 
-        File in <- $fopen("in.pcm", "rb");
-        if (in == InvalidFile) begin
-            $display("couldn't open in.pcm");
-            $finish;
-        end
-        m_in <= in;
+		s_pipeline.setFactor.put(2);
 
-        File out <- $fopen("out.pcm", "wb");
-        if (out == InvalidFile) begin
-            $display("couldn't open out.pcm for write");
-            $finish;
-        end
-        m_out <= out;
-    endrule
+		File in <- $fopen("in.pcm", "rb");
+		if (in == InvalidFile) begin
+				$display("couldn't open in.pcm");
+				$finish;
+		end
+		m_in <= in;
 
-    rule read(m_inited && !m_doneread && m_outstanding.value() != maxBound);
-        int a <- $fgetc(m_in);
-        int b <- $fgetc(m_in);
+		File out <- $fopen("out.pcm", "wb");
+		if (out == InvalidFile) begin
+				$display("couldn't open out.pcm for write");
+				$finish;
+		end
+		m_out <= out;
+	endrule
 
-        if (a == -1 || b == -1) begin
-            m_doneread <= True;
-            $fclose(m_in);
-        end else begin
-            Bit#(8) a8 = truncate(pack(a));
-            Bit#(8) b8 = truncate(pack(b));
+	rule read(m_inited && !m_doneread && m_outstanding.value() != maxBound);
+		int a <- $fgetc(m_in);
+		int b <- $fgetc(m_in);
 
-            // Input is little endian. That means the first byte we read (a8)
-            // is the least significant byte in the sample.
-            pipeline.putSampleInput(unpack({b8, a8}));
-            m_outstanding.up();
-        end
-    endrule
+		if (a == -1 || b == -1) begin
+				m_doneread <= True;
+				$fclose(m_in);
+		end else begin
+			Bit#(8) a8 = truncate(pack(a));
+			Bit#(8) b8 = truncate(pack(b));
 
-    (* descending_urgency="write, pad" *)
-    rule pad(m_inited && m_doneread);
-        // In case there aren't an FFT_POINTs multiple of input samples, pad
-        // the rest with zeros so eventually all the outstanding samples will
-        // drain.
-        pipeline.putSampleInput(0);
-    endrule
+			// Input is little endian. That means the first byte we read (a8)
+			// is the least significant byte in the sample.
+			pipeline.putSampleInput(unpack({b8, a8}));
+			m_outstanding.up();
+		end
+	endrule
 
-    rule write(m_inited);
-        Sample d <- pipeline.getSampleOutput();
-        m_outstanding.down();
+	(* descending_urgency="write, pad" *)
+	rule pad(m_inited && m_doneread);
+		// In case there aren't an FFT_POINTs multiple of input samples, pad
+		// the rest with zeros so eventually all the outstanding samples will
+		// drain.
+		pipeline.putSampleInput(0);
+	endrule
 
-        // Little endian: first thing out is least significant.
-        Bit#(8) a8 = pack(d)[7:0];
-        Bit#(8) b8 = pack(d)[15:8];
-        $fwrite(m_out, "%c", a8);
-        $fwrite(m_out, "%c", b8);
-    endrule
+	rule write(m_inited);
+		Sample d <- pipeline.getSampleOutput();
+		m_outstanding.down();
 
-    rule finish(m_doneread && m_outstanding.value() == 0);
-        $fclose(m_out);
-        $finish();
-    endrule
+		// Little endian: first thing out is least significant.
+		Bit#(8) a8 = pack(d)[7:0];
+		Bit#(8) b8 = pack(d)[15:8];
+		$fwrite(m_out, "%c", a8);
+		$fwrite(m_out, "%c", b8);
+	endrule
+
+	rule finish(m_doneread && m_outstanding.value() == 0);
+		$fclose(m_out);
+		$finish();
+	endrule
 
 endmodule
 

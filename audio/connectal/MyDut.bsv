@@ -6,6 +6,7 @@ import ClientServer::*;
 import GetPut::*;
 import Clocks::*;
 import FShow::*;
+import FixedPoint::*;
 
 import AudioPipeline::*;
 import AudioProcessorTypes::*;
@@ -15,6 +16,7 @@ interface MyDutRequest;
     // Bit#(n) is the only supported argument type for request methods
     method Action putSampleInput (Bit#(16) in);
     method Action reset_dut();
+		method Action setFactor(Bit#(32) factorPkt);
 endinterface
 
 // interface used by hardware to send a message back to software
@@ -30,38 +32,44 @@ interface MyDut;
 endinterface
 
 module mkMyDut#(MyDutIndication indication) (MyDut);
-    // Soft reset generator
-    Reg#(Bool) isResetting <- mkReg(False);
-    Reg#(Bit#(2)) resetCnt <- mkReg(0);
-    Clock connectal_clk <- exposeCurrentClock;
-    MakeResetIfc my_rst <- mkReset(1, True, connectal_clk); // inherits parent's reset (hidden) and introduce extra reset method (OR condition)
-    rule clearResetting if (isResetting);
-        resetCnt <= resetCnt + 1;
-        if (resetCnt == 3) isResetting <= False;
-    endrule
+	// Soft reset generator
+	Reg#(Bool) isResetting <- mkReg(False);
+	Reg#(Bit#(2)) resetCnt <- mkReg(0);
+	Clock connectal_clk <- exposeCurrentClock;
+	MakeResetIfc my_rst <- mkReset(1, True, connectal_clk); // inherits parent's reset (hidden) and introduce extra reset method (OR condition)
+	rule clearResetting if (isResetting);
+		resetCnt <= resetCnt + 1;
+		if (resetCnt == 3) isResetting <= False;
+	endrule
 
-    // Your design
-    AudioProcessor ap <- mkAudioPipeline(reset_by my_rst.new_rst);
+	// Your design
+	SettableAudioProcessor#(16, 16) s_ap <- mkAudioPipeline(reset_by my_rst.new_rst);
+	AudioProcessor ap = s_ap.audioProcessor;
 
-    // Send a message back to sofware whenever the response is ready
-    rule indicationToSoftware;
-        let d <- ap.getSampleOutput;
-        $display("out: %d", d);
-        indication.returnOutput(pack(d)); // pack casts the "type" of non-Bit#(n) variable into Bit#(n). Physical bits do not change. Just type conversion.
-    endrule
+	// Send a message back to sofware whenever the response is ready
+	rule indicationToSoftware;
+		let d <- ap.getSampleOutput;
+		$display("out: %d", d);
+		indication.returnOutput(pack(d)); // pack casts the "type" of non-Bit#(n) variable into Bit#(n). Physical bits do not change. Just type conversion.
+	endrule
 
-    Reg#(Bit#(32)) cnt <- mkReg(0);
-    // Interface used by software (MyDutRequest)
-    interface MyDutRequest request;
-        method Action putSampleInput (Bit#(16) in) if (!isResetting);
-            $display("in: %d %d", in, cnt);
-            cnt <= cnt + 1;
-            ap.putSampleInput(unpack(in)); // unpack casts the type of a Bit#(n) value into a different type, i.e., Sample, which is Int#(16)
-        endmethod
+	Reg#(Bit#(32)) cnt <- mkReg(0);
+	// Interface used by software (MyDutRequest)
+	interface MyDutRequest request;
+		method Action putSampleInput (Bit#(16) in) if (!isResetting);
+			$display("in: %d %d", in, cnt);
+			cnt <= cnt + 1;
+			ap.putSampleInput(unpack(in)); // unpack casts the type of a Bit#(n) value into a different type, i.e., Sample, which is Int#(16)
+		endmethod
 
-        method Action reset_dut;
-            my_rst.assertReset; // assert my_rst.new_rst signal
-            isResetting <= True;
-        endmethod
-    endinterface
+		method Action reset_dut;
+			my_rst.assertReset; // assert my_rst.new_rst signal
+			isResetting <= True;
+		endmethod
+
+		method Action setFactor(Bit#(32) factorPkt) if(!isResetting);
+			FixedPoint#(16, 16) factor = unpack(factorPkt);
+			s_ap.setFactor.put(factor);
+		endmethod
+	endinterface
 endmodule

@@ -6,6 +6,7 @@ import Reg6375::*;
 import GetPut::*;
 import Real::*;
 import Vector::*;
+import FixedPoint::*;
 
 
 // typedef Server#(
