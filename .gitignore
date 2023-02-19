@@ -3,6 +3,7 @@
 !.gitignore
 
 !audio/
+!riscv/
 
 audio/fft/bscdir
 
