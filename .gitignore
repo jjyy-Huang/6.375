@@ -5,6 +5,8 @@
 !audio/
 !riscv/
 
+**/build/
+
 audio/fft/bscdir
 
 audio/work
@@ -12,6 +14,8 @@ audio/work
 **/*.log
 **/*.pcm
 **/*.wav
+**/bluesim/
 
 
 !**/.gitkeep
+riscv/program

@@ -35,11 +35,11 @@ bmarks_host = \
 HOST_OPTS := -std=gnu99 -DPREALLOCATE=0 -DHOST_DEBUG=1 -I$(commondir)
 HOST_COMP := gcc $(HOST_OPTS)
 
-RISCV_TOOL_DIR := /mit/6.375/rv32-gcc/bin
+RISCV_TOOL_DIR := /workspace/rv32/bin
 RISCV_PREFIX := $(RISCV_TOOL_DIR)/riscv32-unknown-elf
 # gcc
 RISCV_GCC := $(RISCV_PREFIX)-gcc
-RISCV_GCC_OPTS := -static -Wa,-march=RVI -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf
+RISCV_GCC_OPTS := -static -Wa,-march=rv32i -mabi=ilp32 -std=gnu99 -O2 -ffast-math -fno-common -fno-builtin-printf
 incs := -I$(bmarkdir)/../env -I$(bmarkdir)/common
 bmarks_defs := -DPREALLOCATE=0 -DHOST_DEBUG=0
 # link
