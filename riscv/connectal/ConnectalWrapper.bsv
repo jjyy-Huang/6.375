@@ -2,7 +2,7 @@
 
 import ProcTypes::*;
 
-`ifdef MULTICYCLE 
+`ifdef MULTICYCLE
 import MultiCycle::*;
 `endif
 
@@ -18,11 +18,11 @@ import TwoStageRedir::*;
 import TwoStageBtb::*;
 `endif
 
-`ifdef THREESTAGE 
+`ifdef THREESTAGE
 import ThreeStage::*;
 `endif
 
-`ifdef THREESTAGEBYPASS 
+`ifdef THREESTAGEBYPASS
 import ThreeStageBypass::*;
 `endif
 
@@ -42,18 +42,18 @@ import Connectable::*;
 // import Xilinx::*;
 
 // DRAM imports
-import DDR3Util::*;
+// import DDR3Util::*;
 
-import DDR3Common::*;
-import DDR3Controller::*;
+// import DDR3Common::*;
+// import DDR3Controller::*;
 import DefaultValue::*;
 
-import DDR3Sim::*;
+// import DDR3Sim::*;
+import SimMem::*;
 
 interface ConnectalWrapper;
-   interface ConnectalProcRequest connectProc;
-   interface ConnectalMemoryInitialization initProc;
-   interface Top_Pins pins;
+  interface ConnectalProcRequest connectProc;
+  interface ConnectalMemoryInitialization initProc;
 endinterface
 
 module mkConnectalWrapper#(HostInterface host, ConnectalProcIndication ind)(ConnectalWrapper);
@@ -66,33 +66,44 @@ module mkConnectalWrapper#(HostInterface host, ConnectalProcIndication ind)(Conn
       resetCnt <= resetCnt + 1;
       if (resetCnt == 3) isResetting <= False;
    endrule
-   
+
    Proc riscv_processor <- mkProc(reset_by my_rst.new_rst);
-   
-   let ddr3_client_delay <- mkDDR3ClienDelay(riscv_processor.ddr3client);   
-   /////////////DDR3 stuff/////////////
-   `ifdef SIMULATION
-   let ddr3_ctrl_user <- mkDDR3Simulator;
-   mkConnection(ddr3_client_delay, ddr3_ctrl_user);
-   `else 
-   Clock clk200 = host.tsys_clk_200mhz_buf;
-   Reset ddr3ref_rst_n <- mkAsyncResetFromCR(4, clk200 );
-   
-   DDR3_Configure_1G ddr3_cfg = defaultValue;
-   ddr3_cfg.reads_in_flight = 32;   // adjust as needed
-   DDR3_Controller_VC707_1GB ddr3_ctrl <- mkDDR3Controller_VC707_2_1(ddr3_cfg, clk200, clocked_by clk200, reset_by ddr3ref_rst_n);
-         
-   Clock ddr3clk = ddr3_ctrl.user.clock;
-   Reset ddr3rstn = ddr3_ctrl.user.reset_n;
-   
-   let ddr3_client_200mhz <- mkDDR3ClientSync(ddr3_client_delay, clockOf(ddr3_client_delay), resetOf(ddr3_client_delay), ddr3clk, ddr3rstn);
-   mkConnection(ddr3_client_200mhz, ddr3_ctrl.user);
-   `endif
-   
+
+
+    mkSimMem(riscv_processor.ddr3client);
+	//  Clock clk200 = host.tsys_clk_200mhz_buf;
+  //  Reset ddr3ref_rst_n <- mkAsyncResetFromCR(4, clk200 );
+
+  //  DDR3_Configure_1G ddr3_cfg = defaultValue;
+  //  ddr3_cfg.reads_in_flight = 32;   // adjust as needed
+  //  DDR3_Controller_VC707_1GB ddr3_ctrl <- mkDDR3Controller_VC707_2_1(ddr3_cfg, clk200, clocked_by clk200, reset_by ddr3ref_rst_n);
+
+//    Clock ddr3clk = ddr3_ctrl.user.clock;
+//    Reset ddr3rstn = ddr3_ctrl.user.reset_n;
+
+  //  /////////////DDR3 stuff/////////////
+  //  `ifdef SIMULATION
+  //  let ddr3_ctrl_user <- mkDDR3Simulator;
+  //  mkConnection(ddr3_client_delay, ddr3_ctrl_user);
+  //  `else
+  //  Clock clk200 = host.tsys_clk_200mhz_buf;
+  //  Reset ddr3ref_rst_n <- mkAsyncResetFromCR(4, clk200 );
+
+  //  DDR3_Configure_1G ddr3_cfg = defaultValue;
+  //  ddr3_cfg.reads_in_flight = 32;   // adjust as needed
+  //  DDR3_Controller_VC707_1GB ddr3_ctrl <- mkDDR3Controller_VC707_2_1(ddr3_cfg, clk200, clocked_by clk200, reset_by ddr3ref_rst_n);
+
+  //  Clock ddr3clk = ddr3_ctrl.user.clock;
+  //  Reset ddr3rstn = ddr3_ctrl.user.reset_n;
+
+  //  let ddr3_client_200mhz <- mkDDR3ClientSync(ddr3_client_delay, clockOf(ddr3_client_delay), resetOf(ddr3_client_delay), ddr3clk, ddr3rstn);
+  //  mkConnection(ddr3_client_200mhz, ddr3_ctrl.user);
+  //  `endif
+
 
    rule relayMessage;
 	  let mess <- riscv_processor.cpuToHost();
-      ind.sendMessage(pack(mess));	
+      ind.sendMessage(pack(mess));
    endrule
    interface ConnectalProcRequest connectProc;
       method Action hostToCpu(Bit#(32) startpc) if (!isResetting&&ready);
@@ -115,12 +126,7 @@ module mkConnectalWrapper#(HostInterface host, ConnectalProcIndication ind)(Conn
 		 $display("Request %x %x",addr, data);
 		 ind.wroteWord(0);
 		 riscv_processor.memInit.request.put(tagged InitLoad (MemInitLoad {addr: addr, data: data}));
-	  endmethod 
+	  endmethod
    endinterface
-   
-   interface Top_Pins pins;
-      `ifndef SIMULATION
-      interface DDR3_Pins_VC707_1GB pins_ddr3 = ddr3_ctrl.ddr3;
-      `endif
-   endinterface
+
 endmodule

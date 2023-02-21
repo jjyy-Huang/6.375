@@ -1,5 +1,5 @@
 `include "ConnectalProjectConfig.bsv"
-import DDR3Controller::*;
+// import DDR3Controller::*;
 
 interface ConnectalProcIndication;
    method Action sendMessage(Bit#(18) mess);
@@ -15,11 +15,11 @@ interface ConnectalMemoryInitialization;
    method Action request(Bit#(32) addr, Bit#(32) data);
 endinterface
 
-interface Top_Pins;
-   `ifndef SIMULATION
-   interface DDR3_Pins_VC707_1GB pins_ddr3;
-   `endif
-endinterface
+// interface Top_Pins;
+//    `ifndef SIMULATION
+//    interface DDR3_Pins_VC707_1GB pins_ddr3;
+//    `endif
+// endinterface
 
 
 
