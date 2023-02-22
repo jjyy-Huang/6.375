@@ -1,6 +1,6 @@
 CONNECTALDIR ?= /workspace/connectal
-MIGDIR ?= /workspacebluespecpcie/dram/vc707/
 BSVROOT = $(abspath .)
+SYNTHSCRIPT = yosys -s ./synth.tcl
 
 S2H_INTERFACES = \
 	ConnectalProcRequest:ConnectalWrapper.connectProc\
@@ -47,7 +47,8 @@ simulation: clean
 # cp bolib/*.bo bluesim/obj/.
 	make -j32 build.bluesim
 
-
+synth:
+	$(SYNTHSCRIPT)
 
 
 clean:
