@@ -9,3 +9,4 @@ read_verilog /home/jerry/software/bsc/inst/lib/Verilog/BRAM2.v
 read_bluespec -aggressive-conditions -no-autoload-bsv-prims -I ./connectal/:./src/:./src/proclib/:./src/types/ -top mkProc ./src/MultiCycle.bsv
 
 synth
+write_verilog ./top.v

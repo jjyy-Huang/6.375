@@ -47,7 +47,7 @@ case $testResponse in
     *)  echo "ERROR: Unexpected response: $response" ; exit ;;
 esac
 
-make -C programs/assembly -j8 
+make -C programs/assembly -j8
 make -C programs/smallbenchmarks -j8
 make -C programs/bigbenchmarks -j8
 
@@ -58,6 +58,7 @@ log_dir=logs
 wait_time=3
 
 # create bsim log dir
+rm -f ${log_dir}/*
 mkdir -p ${log_dir}
 
 pkill -u ${USER} bsim
@@ -71,7 +72,7 @@ for test_name in ${asm_tests[@]}; do
 		echo "ERROR: $mem_file does not exit, you need to first compile"
 		exit
 	fi
-    ln -sf ${mem_file} program 
+    ln -sf ${mem_file} program
 
 	# run test
     ./bluesim/bin/ubuntu.exe > ${log_dir}/${test_name}.log  # run bsim, redirect outputs to log
